@@ -76,31 +76,116 @@ def tinyMazeSearch(problem: SearchProblem) -> List[Directions]:
     return  [s, s, w, s, w, w, s, w]
 
 def depthFirstSearch(problem: SearchProblem) -> List[Directions]:
-    """
-    Search the deepest nodes in the search tree first.
 
-    Your search algorithm needs to return a list of actions that reaches the
-    goal. Make sure to implement a graph search algorithm.
+    from util import Stack
+    # 1) Definimos las variables que vamos a emplear
 
-    To get started, you might want to try some of these simple commands to
-    understand the search problem that is being passed in:
+    visitedNodes = set()
+    stack = Stack()
+    initialState = problem.getStartState()
 
-    print("Start:", problem.getStartState())
-    print("Is the start a goal?", problem.isGoalState(problem.getStartState()))
-    print("Start's successors:", problem.getSuccessors(problem.getStartState()))
-    """
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # 2) Definimos el nodo como una tupla bidimensional, el cual contendra los siguientes parametros:
+    #   1. La posicion del comecocos en el tablero
+    #   2. Un array dinamico con el camino recorrido
+    node = (initialState, [])
+
+    # 3) Encolamos el nodo
+    stack.push(node)
+
+    # 4) Iniciamos el algoritmo
+    while not stack.isEmpty():
+    
+        # 5) Empezamos el analisis del algoritmo
+        state, path = stack.pop()
+
+        # 6) En caso de haber visitado el nodo, omitimos
+        if state in visitedNodes:
+            continue
+        visitedNodes.add(state)
+        # 7) Verificamos si se ha encontrado el nodo
+        if (problem.isGoalState(state)):
+            return path
+        
+        # 8) Al no encontrarse, analizaremos cada casilla adyacente
+        for adyState, action, _ in problem.getSuccessors(state):
+
+            # 9) En caso de no haber visitado el nodo, lo visitamos
+            if (adyState not in visitedNodes):
+                # 10) Hacemos un push del nodo visitado
+                newPath = path + [action]
+                node = (adyState, newPath)
+                stack.push(node)
+                
+                
+    # En caso de no encontrar el camino hacia la meta, devolvemos un array vacio
+    return []
 
 def breadthFirstSearch(problem: SearchProblem) -> List[Directions]:
-    """Search the shallowest nodes in the search tree first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # 1) Importamos las estructuras de datos que vamos a emplear
+    from util import Queue
+    # 2) Definimos las estructuras de datos que vamos a emplear
+    queue = Queue()
+    visitedNodes = set()
+    initialState = problem.getStartState()
+    # 3) Definimos el nodo (NOTA: El nodo empleado es igual que el ejercicio anterior)
+    # Parametros: La posicion inicial del comecocos en el tablero, Una lista de direcciones
+    node = (initialState, [])
+
+    # 4) Añadimos el nodo a la cola y lo marcamos como visitado
+    visitedNodes.add(initialState)
+    queue.push(node)
+    # 5) Iteramos el algoritmo: Condicion de cierre: Se ha encontrado una meta o no se ha podido encontrarla
+    while not queue.isEmpty():
+        # 6) Analizamos los parametros del nodo
+        state, path = queue.pop()
+        # 7) Vemos si hemos alcanzado la meta
+        if problem.isGoalState(state): return path
+        # 8) En caso contrario, visitamos los nodos adyacentes
+        for adyState, action, _ in problem.getSuccessors(state=state):
+            # 9) En caso de no haber visitado la casilla, la marcamos como visitada
+            if (adyState not in visitedNodes):
+                newPath = path + [action]       # Añadimos la dirección del nodo a un nuevo array
+                # 10) Encolamos nuestro nuevo nodo
+                node = (adyState, newPath)
+                queue.push(node)
+                # 11) Marcamos el nodo como visitado
+                visitedNodes.add(adyState)
+
+    # No regresa nada si no existe la meta
+    return []
+
 
 def uniformCostSearch(problem: SearchProblem) -> List[Directions]:
-    """Search the node of least total cost first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    from util import PriorityQueue
+
+    priorityQueue = PriorityQueue()
+    visitedNodes = set()
+
+    # Estado inicial: (state, path, totalCost)
+    initialState = problem.getStartState()
+    priorityQueue.push((initialState, [], 0), 0)
+
+    while not priorityQueue.isEmpty():
+        state, path, totalCost = priorityQueue.pop()
+
+        # Evitar reexpandir estados
+        if state in visitedNodes:
+            continue
+
+        visitedNodes.add(state)
+
+        # Comprobamos objetivo
+        if problem.isGoalState(state):
+            return path
+
+        # Expandimos sucesores
+        for successorState, action, stepCost in problem.getSuccessors(state):
+            if successorState not in visitedNodes:
+                newPath = path + [action]
+                newCost = totalCost + stepCost
+                priorityQueue.push((successorState, newPath, newCost), newCost)
+
+    return []
 
 def nullHeuristic(state, problem=None) -> float:
     """
@@ -110,9 +195,30 @@ def nullHeuristic(state, problem=None) -> float:
     return 0
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directions]:
-    """Search the node that has the lowest combined cost and heuristic first."""
-    "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    # Importar estructuras de datos
+    from util import PriorityQueue
+
+    start = problem.getStartState()
+    frontier = PriorityQueue()
+    # Nodo
+    frontier.push((start, [], 0), heuristic(start, problem)) 
+    costSoFar = {start: 0}  # costo acumulado desde el inicio a cada nodo
+
+    while not frontier.isEmpty():
+        state, path, g = frontier.pop()
+        # Si el estado es el de meta, finaliza el algoritmo
+        if problem.isGoalState(state):
+            return path
+        # Recorremos cada vecino
+        for successor, action, stepCost in problem.getSuccessors(state):
+            new_g = g + stepCost       
+            # En caso de encontrar un camino más barato para el sucesor
+            if successor not in costSoFar or new_g < costSoFar[successor]:
+                costSoFar[successor] = new_g
+                f = new_g + heuristic(successor, problem)               # Calculamos la prioridad
+                frontier.push((successor, path + [action], new_g), f)
+
+    return []
 
 # Abbreviations
 bfs = breadthFirstSearch
